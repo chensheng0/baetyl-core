@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/baetyl/baetyl-core/ami"
 	"github.com/baetyl/baetyl-core/config"
 	"github.com/baetyl/baetyl-core/engine"
 	"github.com/baetyl/baetyl-core/initialize"
@@ -39,10 +40,11 @@ func NewCore(ctx context.Context) (*core, error) {
 		c.Close()
 		return nil, err
 	}
-	c.eng, err = engine.NewEngine(cfg.Engine, c.sto, c.sha)
+	kube, err := ami.GenAMI(cfg.Engine, c.sto)
 	if err != nil {
 		return nil, err
 	}
+	c.eng = engine.NewEngine(cfg.Engine, c.sto, c.sha, kube)
 
 	if !utils.FileExists(cfg.Sync.Cloud.HTTP.Cert) {
 		i, err := initialize.NewInit(&cfg, c.eng.Ami)

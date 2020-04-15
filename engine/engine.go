@@ -2,8 +2,6 @@ package engine
 
 import (
 	"errors"
-	"github.com/baetyl/baetyl-go/spec/crd"
-	v1 "github.com/baetyl/baetyl-go/spec/v1"
 	"math/rand"
 	"os"
 	"time"
@@ -11,8 +9,12 @@ import (
 	"github.com/baetyl/baetyl-core/ami"
 	"github.com/baetyl/baetyl-core/config"
 	"github.com/baetyl/baetyl-core/node"
+	"github.com/baetyl/baetyl-go/http"
 	"github.com/baetyl/baetyl-go/log"
+	"github.com/baetyl/baetyl-go/spec/crd"
+	v1 "github.com/baetyl/baetyl-go/spec/v1"
 	"github.com/baetyl/baetyl-go/utils"
+	routing "github.com/qiangxue/fasthttp-routing"
 	bh "github.com/timshannon/bolthold"
 )
 
@@ -32,20 +34,15 @@ type Engine struct {
 	ns   string
 }
 
-func NewEngine(cfg config.EngineConfig, sto *bh.Store, nod *node.Node) (*Engine, error) {
-	kube, err := ami.GenAMI(cfg, sto)
-	if err != nil {
-		return nil, err
-	}
-	e := &Engine{
-		Ami: kube,
+func NewEngine(cfg config.EngineConfig, sto *bh.Store, nod *node.Node, ami ami.AMI) *Engine {
+	return &Engine{
+		Ami: ami,
 		sto: sto,
 		nod: nod,
 		cfg: cfg,
 		ns:  "baetyl-edge",
 		log: log.With(log.Any("engine", cfg.Kind)),
 	}
-	return e, nil
 }
 
 func (e *Engine) Start() {
@@ -54,6 +51,20 @@ func (e *Engine) Start() {
 
 func (e *Engine) ReportAndDesire() error {
 	return e.reportAndDesireAsync()
+}
+
+func (e *Engine) GetServiceLog(ctx *routing.Context) error {
+	service := ctx.Param("service")
+	tailLines := string(ctx.QueryArgs().Peek("tailLines"))
+	since := string(ctx.QueryArgs().Peek("sinceSeconds"))
+
+	data, err := e.Ami.Log(e.ns, service, tailLines, since)
+	if err != nil {
+		http.RespondMsg(ctx, 500, "ERR_KUBERNETES", err.Error())
+		return nil
+	}
+	http.Respond(ctx, 200, data)
+	return nil
 }
 
 func (e *Engine) reporting() error {

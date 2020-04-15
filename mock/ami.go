@@ -61,3 +61,18 @@ func (mr *MockAMIMockRecorder) Collect(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Collect", reflect.TypeOf((*MockAMI)(nil).Collect), arg0)
 }
+
+// Log mocks base method
+func (m *MockAMI) Log(arg0, arg1, arg2, arg3 string) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Log", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Log indicates an expected call of Log
+func (mr *MockAMIMockRecorder) Log(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Log", reflect.TypeOf((*MockAMI)(nil).Log), arg0, arg1, arg2, arg3)
+}

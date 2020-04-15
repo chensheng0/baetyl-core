@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"github.com/baetyl/baetyl-go/spec/crd"
+	routing "github.com/qiangxue/fasthttp-routing"
 	bh "github.com/timshannon/bolthold"
+	"github.com/valyala/fasthttp"
 	"io/ioutil"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -43,9 +45,8 @@ func prepare(t *testing.T) (*node.Node, config.EngineConfig, *bh.Store) {
 }
 
 func TestEngine(t *testing.T) {
-	eng, err := NewEngine(config.EngineConfig{}, nil, nil)
-	assert.Error(t, err, os.ErrInvalid.Error())
-	assert.Nil(t, eng)
+	eng := NewEngine(config.EngineConfig{}, nil, nil, nil)
+	assert.NotNil(t, eng)
 }
 
 func TestEngineReport(t *testing.T) {
@@ -167,4 +168,40 @@ func TestSortApp(t *testing.T) {
 	expected = []v1.AppInfo{{Name: "b", Version: "b1"}, {Name: "a", Version: "a1"}, {Name: "d", Version: "d1"}}
 	res = alignApps(reApps, deApps)
 	assert.Equal(t, res, expected)
+}
+
+func TestGetServiceLog(t *testing.T) {
+	mockCtl := gomock.NewController(t)
+	defer mockCtl.Finish()
+	mockAmi := mock.NewMockAMI(mockCtl)
+	mockAmi.EXPECT().Log("baetyl-edge", "service1", "10", "60").Return([]byte("hello"), nil).Times(1)
+
+	e := NewEngine(config.EngineConfig{}, nil, nil, mockAmi)
+	assert.NotNil(t, e)
+
+	router := routing.New()
+	router.Get("/services/<service>/log", e.GetServiceLog)
+	go fasthttp.ListenAndServe(":50030", router.HandleRequest)
+	time.Sleep(100 * time.Millisecond)
+
+	client := &fasthttp.Client{}
+	req := fasthttp.AcquireRequest()
+	resp := fasthttp.AcquireResponse()
+	url := fmt.Sprintf("%s%s", "http://127.0.0.1:50030", "/services/service1/log?tailLines=10&sinceSeconds=60")
+	req.SetRequestURI(url)
+	req.Header.SetMethod("GET")
+	err := client.Do(req, resp)
+	assert.NoError(t, err)
+	assert.Equal(t, resp.StatusCode(), 200)
+	assert.Equal(t, "hello", string(resp.Body()))
+
+	mockAmi.EXPECT().Log("baetyl-edge", "unknown", "10", "60").Return(nil, errors.New("error")).Times(1)
+	req2 := fasthttp.AcquireRequest()
+	resp2 := fasthttp.AcquireResponse()
+	url2 := fmt.Sprintf("%s%s", "http://127.0.0.1:50030", "/services/unknown/log?tailLines=10&sinceSeconds=60")
+	req2.SetRequestURI(url2)
+	req2.Header.SetMethod("GET")
+	err2 := client.Do(req2, resp2)
+	assert.NoError(t, err2)
+	assert.Equal(t, resp2.StatusCode(), 500)
 }

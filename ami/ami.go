@@ -13,6 +13,7 @@ import (
 type AMI interface {
 	Collect(string) (specv1.Report, error)
 	Apply(string, []specv1.AppInfo, string) error
+	Log(string, string, string, string) ([]byte, error)
 }
 
 const (

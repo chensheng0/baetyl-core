@@ -58,12 +58,12 @@ func (e *Engine) GetServiceLog(ctx *routing.Context) error {
 	tailLines := string(ctx.QueryArgs().Peek("tailLines"))
 	since := string(ctx.QueryArgs().Peek("sinceSeconds"))
 
-	data, err := e.Ami.Log(e.ns, service, tailLines, since)
+	reader, err := e.Ami.FetchLog(e.ns, service, tailLines, since)
 	if err != nil {
 		http.RespondMsg(ctx, 500, "ERR_KUBERNETES", err.Error())
 		return nil
 	}
-	http.Respond(ctx, 200, data)
+	http.RespondStream(ctx, 200, reader, -1)
 	return nil
 }
 

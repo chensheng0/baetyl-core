@@ -8,6 +8,7 @@ import (
 	bh "github.com/timshannon/bolthold"
 	"github.com/valyala/fasthttp"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -174,7 +175,7 @@ func TestGetServiceLog(t *testing.T) {
 	mockCtl := gomock.NewController(t)
 	defer mockCtl.Finish()
 	mockAmi := mock.NewMockAMI(mockCtl)
-	mockAmi.EXPECT().Log("baetyl-edge", "service1", "10", "60").Return([]byte("hello"), nil).Times(1)
+	mockAmi.EXPECT().FetchLog("baetyl-edge", "service1", "10", "60").Return(ioutil.NopCloser(strings.NewReader("hello world")), nil).Times(1)
 
 	e := NewEngine(config.EngineConfig{}, nil, nil, mockAmi)
 	assert.NotNil(t, e)
@@ -193,9 +194,9 @@ func TestGetServiceLog(t *testing.T) {
 	err := client.Do(req, resp)
 	assert.NoError(t, err)
 	assert.Equal(t, resp.StatusCode(), 200)
-	assert.Equal(t, "hello", string(resp.Body()))
+	assert.Equal(t, "hello world", string(resp.Body()))
 
-	mockAmi.EXPECT().Log("baetyl-edge", "unknown", "10", "60").Return(nil, errors.New("error")).Times(1)
+	mockAmi.EXPECT().FetchLog("baetyl-edge", "unknown", "10", "60").Return(nil, errors.New("error")).Times(1)
 	req2 := fasthttp.AcquireRequest()
 	resp2 := fasthttp.AcquireResponse()
 	url2 := fmt.Sprintf("%s%s", "http://127.0.0.1:50030", "/services/unknown/log?tailLines=10&sinceSeconds=60")

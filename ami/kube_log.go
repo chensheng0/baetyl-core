@@ -1,7 +1,6 @@
 package ami
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -10,7 +9,7 @@ import (
 	kl "k8s.io/apimachinery/pkg/labels"
 )
 
-func (k *kubeImpl) Log(ns, service, tailLines, sinceSeconds string) ([]byte, error) {
+func (k *kubeImpl) FetchLog(ns, service, tailLines, sinceSeconds string) (io.ReadCloser, error) {
 	deploy, err := k.cli.app.Deployments(ns).Get(service, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -46,15 +45,5 @@ func (k *kubeImpl) Log(ns, service, tailLines, sinceSeconds string) ([]byte, err
 		cli = cli.Param("sinceSeconds", sinceSeconds)
 	}
 
-	buf := new(bytes.Buffer)
-	readCloser, err := cli.Stream()
-	if err != nil {
-		return nil, err
-	}
-	defer readCloser.Close()
-
-	if _, err = io.Copy(buf, readCloser); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return cli.Stream()
 }

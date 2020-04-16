@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/baetyl/baetyl-core/ami"
 	"github.com/baetyl/baetyl-core/config"
 	"github.com/baetyl/baetyl-core/engine"
 	"github.com/baetyl/baetyl-core/node"
@@ -41,11 +40,11 @@ func NewCore(ctx context.Context) (*core, error) {
 		c.Close()
 		return nil, err
 	}
-	kube, err := ami.GenAMI(cfg.Engine, c.sto)
+	c.eng, err = engine.NewEngine(cfg.Engine, c.sto, c.sha)
 	if err != nil {
+		c.Close()
 		return nil, err
 	}
-	c.eng = engine.NewEngine(cfg.Engine, c.sto, c.sha, kube)
 
 	c.eng.Start()
 	c.syn, err = sync.NewSync(cfg.Sync, c.sto, c.sha)
@@ -76,7 +75,7 @@ func (c *core) Close() {
 
 func (c *core) initRouter() fasthttp.RequestHandler {
 	router := routing.New()
-	router.Get("/nodes/status", c.sha.GetStatus)
+	router.Get("/node/status", c.sha.GetStatus)
 	router.Get("/services/<service>/log", c.eng.GetServiceLog)
 	return router.HandleRequest
 }

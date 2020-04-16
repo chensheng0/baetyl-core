@@ -12,9 +12,9 @@ import (
 
 // AMI app model interfaces
 type AMI interface {
-	Collect(ns string) (specv1.Report, error)
-	Apply(ns string, appInfos []specv1.AppInfo, condition string) error
-	FetchLog(ns, service, tailLines, sinceSeconds string) (io.ReadCloser, error)
+	Collect(namespace string) (specv1.Report, error)
+	Apply(namespace string, appInfos []specv1.AppInfo, condition string) error
+	FetchLog(namespace, service string, tailLines, sinceSeconds int64) (io.ReadCloser, error)
 }
 
 const (

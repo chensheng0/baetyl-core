@@ -64,7 +64,7 @@ func (mr *MockAMIMockRecorder) Collect(arg0 interface{}) *gomock.Call {
 }
 
 // FetchLog mocks base method
-func (m *MockAMI) FetchLog(arg0, arg1, arg2, arg3 string) (io.ReadCloser, error) {
+func (m *MockAMI) FetchLog(arg0, arg1 string, arg2, arg3 int64) (io.ReadCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchLog", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(io.ReadCloser)

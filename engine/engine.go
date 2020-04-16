@@ -2,8 +2,10 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/baetyl/baetyl-core/ami"
@@ -34,15 +36,19 @@ type Engine struct {
 	ns   string
 }
 
-func NewEngine(cfg config.EngineConfig, sto *bh.Store, nod *node.Node, ami ami.AMI) *Engine {
+func NewEngine(cfg config.EngineConfig, sto *bh.Store, nod *node.Node) (*Engine, error) {
+	kube, err := ami.GenAMI(cfg, sto)
+	if err != nil {
+		return nil, err
+	}
 	return &Engine{
-		Ami: ami,
+		Ami: kube,
 		sto: sto,
 		nod: nod,
 		cfg: cfg,
 		ns:  "baetyl-edge",
 		log: log.With(log.Any("engine", cfg.Kind)),
-	}
+	}, nil
 }
 
 func (e *Engine) Start() {
@@ -56,11 +62,17 @@ func (e *Engine) ReportAndDesire() error {
 func (e *Engine) GetServiceLog(ctx *routing.Context) error {
 	service := ctx.Param("service")
 	tailLines := string(ctx.QueryArgs().Peek("tailLines"))
-	since := string(ctx.QueryArgs().Peek("sinceSeconds"))
+	sinceSeconds := string(ctx.QueryArgs().Peek("sinceSeconds"))
 
-	reader, err := e.Ami.FetchLog(e.ns, service, tailLines, since)
+	tail, since, err := e.validParam(tailLines, sinceSeconds)
 	if err != nil {
-		http.RespondMsg(ctx, 500, "ERR_KUBERNETES", err.Error())
+		http.RespondMsg(ctx, 400, "RequestParamInvalid", err.Error())
+		return nil
+	}
+
+	reader, err := e.Ami.FetchLog(e.ns, service, tail, since)
+	if err != nil {
+		http.RespondMsg(ctx, 500, "UnknownError", err.Error())
 		return nil
 	}
 	http.RespondStream(ctx, 200, reader, -1)
@@ -179,6 +191,28 @@ func (e *Engine) injectEnv(appInfos []v1.AppInfo) error {
 		}
 	}
 	return nil
+}
+
+func (e *Engine) validParam(tailLines, sinceSeconds string) (itailLines, isinceSeconds int64, err error) {
+	if tailLines != "" {
+		if itailLines, err = strconv.ParseInt(tailLines, 10, 64); err != nil {
+			return
+		}
+		if itailLines < 0 {
+			err = fmt.Errorf("The request parameter is invalid.(%s)", "tailLines is invalid")
+			return
+		}
+	}
+	if sinceSeconds != "" {
+		if isinceSeconds, err = strconv.ParseInt(sinceSeconds, 10, 64); err != nil {
+			return
+		}
+		if isinceSeconds < 0 {
+			err = fmt.Errorf("The request parameter is invalid.(%s)", "sinceSeconds is invalid")
+			return
+		}
+	}
+	return
 }
 
 func (e *Engine) Close() {

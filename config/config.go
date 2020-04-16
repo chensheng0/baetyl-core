@@ -32,9 +32,9 @@ type KubernetesConfig struct {
 }
 
 type KubernetesLogConfig struct {
-	Follow     string `yaml:"follow" json:"follow"`
-	Previous   string `yaml:"previous" json:"previous"`
-	TimeStamps string `yaml:"timestamps" json:"timestamps"`
+	Follow     bool `yaml:"follow" json:"follow"`
+	Previous   bool `yaml:"previous" json:"previous"`
+	TimeStamps bool `yaml:"timestamps" json:"timestamps"`
 }
 
 type StoreConfig struct {

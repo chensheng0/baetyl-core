@@ -138,14 +138,14 @@ func (s *Node) Report(reported v1.Report) (delta v1.Desire, err error) {
 func (s *Node) GetStatus(ctx *routing.Context) error {
 	node, err := s.Get()
 	if err != nil {
-		http.RespondMsg(ctx, 500, "ERR_DB", err.Error())
+		http.RespondMsg(ctx, 500, "UnknownError", err.Error())
 		return nil
 	}
 
 	view := node.View(OfflineDuration)
 	res, err := json.Marshal(view)
 	if err != nil {
-		http.RespondMsg(ctx, 500, "ERR_JSON", err.Error())
+		http.RespondMsg(ctx, 500, "UnknownError", err.Error())
 		return nil
 	}
 	http.Respond(ctx, 200, res)

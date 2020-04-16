@@ -186,14 +186,14 @@ func TestGetStatus(t *testing.T) {
 	assert.NotNil(t, ss)
 
 	router := routing.New()
-	router.Get("/nodes/status", ss.GetStatus)
+	router.Get("/node/status", ss.GetStatus)
 	go fasthttp.ListenAndServe(":50020", router.HandleRequest)
 	time.Sleep(100 * time.Millisecond)
 
 	client := &fasthttp.Client{}
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
-	url := fmt.Sprintf("%s%s", "http://127.0.0.1:50020", "/nodes/status")
+	url := fmt.Sprintf("%s%s", "http://127.0.0.1:50020", "/node/status")
 	req.SetRequestURI(url)
 	req.Header.SetMethod("GET")
 	err = client.Do(req, resp)
